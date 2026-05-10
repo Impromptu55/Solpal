@@ -17,7 +17,7 @@ export default function Page() {
     setLoading(true)
     setResults(null)
     try {
-      const res = await fetch('/api/debug', {
+      const res = await fetch('http://localhost:8000/api/ai/analyze', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ code, language }),
@@ -26,13 +26,33 @@ export default function Page() {
       if (!res.ok) throw new Error('Server error while debugging')
 
       const data = await res.json()
-      setResults(data)
-      setShowBadgeNotice(true) // first successful debug -> show badge notice
+      setResults({
+        problem: data.explanation ?? data.problem ?? 'No explanation returned',
+        fixedCode: data.corrected_code ?? data.fixedCode ?? '',
+        tip: data.learning_tips ?? data.tip ?? '',
+      })
+      setShowBadgeNotice(true)
     } catch (err: any) {
       console.error(err)
       toast.error('Failed to debug. Please try again.')
     } finally {
       setLoading(false)
+    }
+  }
+
+  async function handleAwardBadge() {
+    try {
+      const res = await fetch('http://localhost:8000/api/badges/award', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ badge: 'first_debug' }),
+      })
+
+      if (!res.ok) throw new Error('Badge award failed')
+      toast.success('Badge awarded successfully!')
+    } catch (err: any) {
+      console.error(err)
+      toast.error('Failed to award badge.')
     }
   }
 
@@ -64,7 +84,13 @@ export default function Page() {
                     <h4 className="text-lg">🎉 You earned the First Debug badge!</h4>
                     <p className="text-sm text-slate-200/80">Mint this badge to your wallet to show off your progress.</p>
                   </div>
-                  <button className="ml-4 px-4 py-2 bg-white text-[#0a0a0f] rounded-md font-medium hover:opacity-95">Mint to Wallet</button>
+                  <button
+                    type="button"
+                    className="ml-4 px-4 py-2 bg-white text-[#0a0a0f] rounded-md font-medium hover:opacity-95"
+                    onClick={handleAwardBadge}
+                  >
+                    Mint to Wallet
+                  </button>
                 </div>
               </div>
             )}
